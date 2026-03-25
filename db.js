@@ -8,6 +8,8 @@ const pool = new Pool({
   }
 });
 
+
+
 pool.on('connect', () => {
   console.log('✅ Conectado a PostgreSQL Railway');
 });
