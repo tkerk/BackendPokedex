@@ -13,8 +13,12 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middlewares
+const allowedOrigins = process.env.ALLOWED_ORIGINS 
+  ? process.env.ALLOWED_ORIGINS.split(',') 
+  : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:4173'];
+
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:4173'],
+  origin: allowedOrigins,
   credentials: true
 }));
 app.use(express.json());
