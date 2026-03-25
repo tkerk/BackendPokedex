@@ -4,10 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-  "start": "node index.js",
-  "migrate": "node migrate.js",
-  "build": "npm run migrate" 
-},
+    "start": "node migrate.js && node index.js",
+    "migrate": "node migrate.js"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
