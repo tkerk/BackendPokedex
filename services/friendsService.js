@@ -15,13 +15,7 @@ class FriendsService {
     const friend = await this.searchByCode(friendCode);
     if (friend.id === userId) throw new Error('No puedes agregarte a ti mismo');
 
-    const existing = await pool.query(
-      `SELECT * FROM friendships 
-       WHERE ((user_id=$1 AND friend_id=$2) OR (user_id=$2 AND friend_id=$1))
-       AND status IN ('pending', 'accepted')`,
-      [userId, friend.id]
-    );
-    if (existing.rows.length > 0) throw new Error('Ya existe una solicitud con este usuario');
+    // Permitir múltiples solicitudes (se removió la validación de solicitudes existentes)
 
     const result = await pool.query(
       'INSERT INTO friendships (user_id, friend_id, status) VALUES ($1, $2, $3) RETURNING *',
