@@ -60,6 +60,52 @@ class BattleService {
 
     return result.rows[0];
   }
+
+  async getPendingChallenges(userId) {
+    const result = await pool.query(
+      `SELECT b.id, b.challenger_id, u.name as challenger_name, b.created_at
+       FROM battle_challenges b
+       JOIN users u ON b.challenger_id = u.id
+       WHERE b.opponent_id = $1 AND b.status = 'pending'
+       ORDER BY b.created_at DESC`,
+      [userId]
+    );
+    return result.rows;
+  }
+
+  async acceptChallenge(userId, challengeId) {
+    const result = await pool.query(
+      'UPDATE battle_challenges SET status = $1 WHERE id = $2 AND opponent_id = $3 AND status = $4 RETURNING *',
+      ['accepted', challengeId, userId, 'pending']
+    );
+    if (result.rows.length === 0) throw new Error('Reto invalido o ya procesado');
+
+    const challengerId = result.rows[0].challenger_id;
+    try {
+      await pushService.sendNotification(challengerId, {
+        title: '⚔️ ¡Reto Aceptado!',
+        body: `Tu reto de batalla ha sido aceptado. ¡Entra a la arena!`,
+        icon: '/Logo.png',
+        tag: 'battle-accepted',
+        data: {
+          type: 'battle_accepted',
+          challengeId: challengeId,
+          url: `/battle/${challengeId}`,
+        },
+      });
+    } catch (e) { console.error('Push fail:', e.message); }
+
+    return result.rows[0];
+  }
+
+  async rejectChallenge(userId, challengeId) {
+    const result = await pool.query(
+      'UPDATE battle_challenges SET status = $1 WHERE id = $2 AND opponent_id = $3 AND status = $4 RETURNING *',
+      ['rejected', challengeId, userId, 'pending']
+    );
+    if (result.rows.length === 0) throw new Error('Reto invalido o ya procesado');
+    return result.rows[0];
+  }
 }
 
 module.exports = new BattleService();

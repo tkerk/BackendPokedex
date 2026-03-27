@@ -35,9 +35,10 @@ class TeamsService {
       const team = teamResult.rows[0];
 
       for (let i = 0; i < members.length; i++) {
+        const moves = members[i].moves ? JSON.stringify(members[i].moves) : '[]';
         await client.query(
-          'INSERT INTO team_members (team_id, pokemon_id, pokemon_name, position) VALUES ($1, $2, $3, $4)',
-          [team.id, members[i].pokemonId, members[i].pokemonName, i + 1]
+          'INSERT INTO team_members (team_id, pokemon_id, pokemon_name, position, moves) VALUES ($1, $2, $3, $4, $5)',
+          [team.id, members[i].pokemonId, members[i].pokemonName, i + 1, moves]
         );
       }
 

@@ -19,6 +19,19 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',') 
   : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:4173'];
 
+const http = require('http');
+const server = http.createServer(app);
+
+const io = require('socket.io')(server, {
+  cors: {
+    origin: allowedOrigins,
+    credentials: true
+  }
+});
+
+const battleEngine = require('./services/battleEngine');
+battleEngine.init(io);
+
 app.use(cors({
   origin: allowedOrigins,
   credentials: true
@@ -53,6 +66,6 @@ app.post('/api/heartbeat', async (req, res) => {
 });
 
 // Iniciar servidor
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
 });

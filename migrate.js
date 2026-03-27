@@ -30,6 +30,9 @@ const migrate = async () => {
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='is_online') THEN
           ALTER TABLE users ADD COLUMN is_online BOOLEAN DEFAULT false;
         END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='team_members' AND column_name='moves') THEN
+          ALTER TABLE team_members ADD COLUMN moves JSONB DEFAULT '[]'::jsonb;
+        END IF;
       END $$;
     `);
 
@@ -73,6 +76,7 @@ const migrate = async () => {
         pokemon_id INTEGER NOT NULL,
         pokemon_name VARCHAR(100) NOT NULL,
         position INTEGER NOT NULL CHECK(position >= 1 AND position <= 6),
+        moves JSONB DEFAULT '[]'::jsonb,
         UNIQUE(team_id, position)
       );
     `);
