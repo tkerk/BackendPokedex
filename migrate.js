@@ -91,6 +91,32 @@ const migrate = async () => {
     `);
     console.log('✅ Tabla "friendships" creada/verificada');
 
+    // Tabla de suscripciones push
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS push_subscriptions (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        endpoint TEXT NOT NULL,
+        p256dh TEXT NOT NULL,
+        auth TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(user_id)
+      );
+    `);
+    console.log('✅ Tabla "push_subscriptions" creada/verificada');
+
+    // Tabla de retos de batalla
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS battle_challenges (
+        id SERIAL PRIMARY KEY,
+        challenger_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        opponent_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        status VARCHAR(20) DEFAULT 'pending' CHECK(status IN ('pending', 'accepted', 'rejected')),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    console.log('✅ Tabla "battle_challenges" creada/verificada');
+
     // Índices
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_favorites_user_id ON favorites(user_id);`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_teams_user_id ON teams(user_id);`);
@@ -98,6 +124,8 @@ const migrate = async () => {
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_friendships_user_id ON friendships(user_id);`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_friendships_friend_id ON friendships(friend_id);`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_users_friend_code ON users(friend_code);`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user_id ON push_subscriptions(user_id);`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_battle_challenges_opponent ON battle_challenges(opponent_id);`);
     console.log('✅ Índices creados/verificados');
 
     console.log('🎉 Migraciones completadas exitosamente');

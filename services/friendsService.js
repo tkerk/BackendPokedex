@@ -1,4 +1,5 @@
 const pool = require('../db');
+const pushService = require('./pushService');
 
 class FriendsService {
   async searchByCode(friendCode) {
@@ -15,7 +16,9 @@ class FriendsService {
     if (friend.id === userId) throw new Error('No puedes agregarte a ti mismo');
 
     const existing = await pool.query(
-      'SELECT * FROM friendships WHERE (user_id=$1 AND friend_id=$2) OR (user_id=$2 AND friend_id=$1)',
+      `SELECT * FROM friendships 
+       WHERE ((user_id=$1 AND friend_id=$2) OR (user_id=$2 AND friend_id=$1))
+       AND status IN ('pending', 'accepted')`,
       [userId, friend.id]
     );
     if (existing.rows.length > 0) throw new Error('Ya existe una solicitud con este usuario');
@@ -24,8 +27,33 @@ class FriendsService {
       'INSERT INTO friendships (user_id, friend_id, status) VALUES ($1, $2, $3) RETURNING *',
       [userId, friend.id, 'pending']
     );
+
+    // Obtener nombre del solicitante
+    const sender = await pool.query('SELECT name FROM users WHERE id = $1', [userId]);
+    const senderName = sender.rows[0]?.name || 'Alguien';
+
+    // Enviar push notification al destinatario (no es crítico, atrapar errores)
+    try {
+      await pushService.sendNotification(friend.id, {
+        title: '👥 ¡Nueva solicitud de amistad!',
+        body: `${senderName} quiere ser tu amigo`,
+        icon: '/Logo.png',
+        badge: '/Logo.png',
+        tag: 'friend-request',
+        data: {
+          type: 'friend_request',
+          friendshipId: result.rows[0].id,
+          senderName,
+          url: '/friends',
+        },
+      });
+    } catch (e) {
+      console.error('[Push] Fallo enviando notificación de amistad:', e.message);
+    }
+
     return result.rows[0];
   }
+
 
   async acceptRequest(userId, friendshipId) {
     const result = await pool.query(

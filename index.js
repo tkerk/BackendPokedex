@@ -6,6 +6,8 @@ const authRoutes = require('./routes/authRoutes');
 const favoritesRoutes = require('./routes/favoritesRoutes');
 const teamsRoutes = require('./routes/teamsRoutes');
 const friendsRoutes = require('./routes/friendsRoutes');
+const pushRoutes = require('./routes/pushRoutes');
+const battleRoutes = require('./routes/battleRoutes');
 const friendsService = require('./services/friendsService');
 const jwt = require('jsonwebtoken');
 
@@ -28,6 +30,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/favorites', favoritesRoutes);
 app.use('/api/teams', teamsRoutes);
 app.use('/api/friends', friendsRoutes);
+app.use('/api/push', pushRoutes);
+app.use('/api/battle', battleRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
