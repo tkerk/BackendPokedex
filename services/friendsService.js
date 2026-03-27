@@ -15,7 +15,11 @@ class FriendsService {
     const friend = await this.searchByCode(friendCode);
     if (friend.id === userId) throw new Error('No puedes agregarte a ti mismo');
 
-    // Permitir múltiples solicitudes (se removió la validación de solicitudes existentes)
+    // Permitir múltiples solicitudes borrando cualquier solicitud anterior (pendiente, rechazada, etc) entre estos 2 usuarios
+    await pool.query(
+      'DELETE FROM friendships WHERE (user_id=$1 AND friend_id=$2) OR (user_id=$2 AND friend_id=$1)',
+      [userId, friend.id]
+    );
 
     const result = await pool.query(
       'INSERT INTO friendships (user_id, friend_id, status) VALUES ($1, $2, $3) RETURNING *',
@@ -59,9 +63,10 @@ class FriendsService {
   }
 
   async rejectRequest(userId, friendshipId) {
+    // Eliminar completamente la solicitud de la base de datos en lugar de solo cambiar el status
     const result = await pool.query(
-      'UPDATE friendships SET status = $1 WHERE id = $2 AND friend_id = $3 RETURNING *',
-      ['rejected', friendshipId, userId]
+      'DELETE FROM friendships WHERE id = $1 AND friend_id = $2 RETURNING *',
+      [friendshipId, userId]
     );
     if (result.rows.length === 0) throw new Error('Solicitud no encontrada');
     return result.rows[0];
