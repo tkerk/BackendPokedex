@@ -58,6 +58,7 @@ class BattleEngine {
               challengerId: battleRecord.challenger_id,
               opponentId: battleRecord.opponent_id,
               playersReady: new Set(),
+              playersActuallyReady: new Set(),
               teams: {},     // userId -> [pokemon]
               activePokemonIndex: {}, // userId -> index
               turnActions: {} // Las acciones elegidas este turno
@@ -70,12 +71,14 @@ class BattleEngine {
           // Emitir al socket que se ha unido exitosamente
           socket.emit('battle_joined', { battleId });
 
-          // Si ambos están listos y no se han cargado los equipos
+          // Si ambos están conectados a la sala y no ha empezado la batalla
           if (battle.playersReady.size === 2 && !battle.stateInitialized) {
-            await this.initializeGameState(battle);
-            battle.stateInitialized = true;
-            // Notificar a ambos jugadores que la batalla arranca
-            this.io.to(room).emit('battle_start', this.getSanitizedState(battle));
+            this.io.to(room).emit('battle_waiting_ready', {
+               challengerId: battle.challengerId,
+               opponentId: battle.opponentId
+            });
+            // Adicionalmente mandar sync count si alguien refresca
+            socket.emit('player_ready_status', { readyCount: battle.playersActuallyReady.size });
           } else if (battle.stateInitialized) {
             // Re-conexion
             socket.emit('battle_sync', this.getSanitizedState(battle));
@@ -84,6 +87,21 @@ class BattleEngine {
         } catch (error) {
           console.error('[Socket] Error join_battle', error);
           socket.emit('battle_error', { message: 'Error interno conectando a batalla' });
+        }
+      });
+
+      // Manejo de estar Listo "Ready" para iniciar
+      socket.on('player_ready', async ({ battleId }) => {
+        const battle = this.activeBattles.get(battleId);
+        if (!battle || battle.stateInitialized) return;
+
+        battle.playersActuallyReady.add(socket.userId);
+        this.io.to(battle.room).emit('player_ready_status', { readyCount: battle.playersActuallyReady.size });
+
+        if (battle.playersActuallyReady.size === 2 && !battle.stateInitialized) {
+          await this.initializeGameState(battle);
+          battle.stateInitialized = true;
+          this.io.to(battle.room).emit('battle_start', this.getSanitizedState(battle));
         }
       });
 
